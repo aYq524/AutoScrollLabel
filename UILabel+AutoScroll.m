@@ -88,6 +88,7 @@ static NSString * scrollAnimation = @"scrollAnimation";
 {
     BOOL shouldScroll = [self shouldAutoScroll];
     CATextLayer * textLayer = [self getTextLayer];
+    
     if (shouldScroll)
     {
         CABasicAnimation * ani = [self getAnimation];
@@ -101,12 +102,6 @@ static NSString * scrollAnimation = @"scrollAnimation";
     }
 }
 
-///// runtime的方式，存放需要
-//- (NSString *)getShowText
-//{
-//    return objc_getAssociatedObject(self, &showText) ? objc_getAssociatedObject(self, &showText) : @"";
-//}
-
 /// runtime存放textLayer，避免多次生成
 - (CATextLayer *)getTextLayer
 {
@@ -117,13 +112,14 @@ static NSString * scrollAnimation = @"scrollAnimation";
     }
     CGSize size = [self.text sizeWithAttributes:@{NSFontAttributeName:self.font}];
     CGFloat stringWidth = size.width;
-    CGFloat stringHeight = size.height;
-    layer.frame = CGRectMake(0, (self.frame.size.height - stringHeight)/2, stringWidth, stringHeight);
+    layer.frame = CGRectMake(0, 0, stringWidth, self.frame.size.height);
     layer.alignmentMode = kCAAlignmentCenter;
     layer.font = (__bridge CFTypeRef _Nullable)(self.font.fontName);
     layer.fontSize = self.font.pointSize;
     layer.foregroundColor = self.textColor.CGColor;
     layer.string = self.text;
+    // 不写这句可能导致layer的文字在某些情况下不清晰
+    layer.contentsScale = [UIScreen mainScreen].scale;
     return layer;
 }
 
@@ -136,13 +132,21 @@ static NSString * scrollAnimation = @"scrollAnimation";
         objc_setAssociatedObject(self, &scrollAnimation, ani, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
     }
     CATextLayer * textLayer = [self getTextLayer];
-    id toValue = @(-textLayer.frame.size.width);
-    id fromValue = @(textLayer.frame.size.width);
+    CGPoint point = textLayer.position;
+    CGFloat lenth = textLayer.frame.size.width - self.frame.size.width;
+    // 起点位置
+    CGPoint pointSrc = CGPointMake(point.x + 20, point.y);
+    // 终点位置
+    CGPoint pointDes = CGPointMake(pointSrc.x - lenth - 30, pointSrc.y);
+    id toValue = [NSValue valueWithCGPoint:pointDes];
+    id fromValue = [NSValue valueWithCGPoint:pointSrc];
     ani.toValue = toValue;
     ani.fromValue = fromValue;
-    ani.duration = 4;
-    ani.fillMode = @"backwards";
-    ani.repeatCount = 1000000000.0;
+    ani.duration = 2;
+    ani.fillMode = kCAFillModeBoth;
+    ani.repeatCount = HUGE_VALF;
+    // 结束后逆向执行动画
+    ani.autoreverses = YES;
     ani.removedOnCompletion = false;
     return ani;
 }
@@ -151,11 +155,13 @@ static NSString * scrollAnimation = @"scrollAnimation";
 - (BOOL)shouldAutoScroll
 {
     BOOL shouldScroll = false;
-    CGSize size = [self.text sizeWithAttributes:@{NSFontAttributeName:self.font}];
-    CGFloat stringWidth = size.width;
-    CGFloat labelWidth = self.frame.size.width;
-    if (labelWidth < stringWidth) {
-        shouldScroll = true;
+    if (self.numberOfLines == 1) {
+        CGSize size = [self.text sizeWithAttributes:@{NSFontAttributeName:self.font}];
+        CGFloat stringWidth = size.width;
+        CGFloat labelWidth = self.frame.size.width;
+        if (labelWidth < stringWidth) {
+            shouldScroll = true;
+        }
     }
     return shouldScroll;
 }
