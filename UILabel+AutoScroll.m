@@ -22,7 +22,7 @@ static NSString * scrollAnimation = @"scrollAnimation";
         Method setFontMethod = class_getInstanceMethod(self, @selector(setFont:));
         Method setFrameMethod = class_getInstanceMethod(self, @selector(setFrame:));
         Method drawTextMethon = class_getInstanceMethod(self, @selector(drawTextInRect:));
-        
+
         Method scrollSetTextMethod = class_getInstanceMethod(self, @selector(autoScrollSetText:));
         Method scrollSetColorMethod = class_getInstanceMethod(self, @selector(autoScrollSetTextColor:));
         Method scrollSetFontMethod = class_getInstanceMethod(self, @selector(autoScrollSetFont:));
@@ -163,6 +163,12 @@ static NSString * scrollAnimation = @"scrollAnimation";
             shouldScroll = true;
         }
     }
+    
+    Class ModelClass = NSClassFromString(@"_UIAlertControllerActionView");
+    if ([self.superview.superview isKindOfClass:ModelClass]) {
+        shouldScroll = false;
+    }
+    
     return shouldScroll;
 }
 
